@@ -1,0 +1,123 @@
+elta = @from.delta;
+            @to.scrollDelta = @from.scrollDelta;
+            @to.pointerCurrentRaycast = @from.pointerCurrentRaycast;
+            @to.pointerEnter = @from.pointerEnter;
+        }
+
+        /// <summary>
+        /// Given a mouse button return the current state for the frame.
+        /// </summary>
+        /// <param name="buttonId">Mouse button ID</param>
+        protected PointerEventData.FramePressState StateForMouseButton(int buttonId)
+        {
+            var pressed = input.GetMouseButtonDown(buttonId);
+            var released = input.GetMouseButtonUp(buttonId);
+            if (pressed && released)
+                return PointerEventData.FramePressState.PressedAndReleased;
+            if (pressed)
+                return PointerEventData.FramePressState.Pressed;
+            if (released)
+                return PointerEventData.FramePressState.Released;
+            return PointerEventData.FramePressState.NotChanged;
+        }
+
+        protected class ButtonState
+        {
+            private PointerEventData.InputButton m_Button = PointerEventData.InputButton.Left;
+
+            public MouseButtonEventData eventData
+            {
+                get { return m_EventData; }
+                set { m_EventData = value; }
+            }
+
+            public PointerEventData.InputButton button
+            {
+                get { return m_Button; }
+                set { m_Button = value; }
+            }
+
+            private MouseButtonEventData m_EventData;
+        }
+
+        protected class MouseState
+        {
+            private List<ButtonState> m_TrackedButtons = new List<ButtonState>();
+
+            public bool AnyPressesThisFrame()
+            {
+                for (int i = 0; i < m_TrackedButtons.Count; i++)
+                {
+                    if (m_TrackedButtons[i].eventData.PressedThisFrame())
+                        return true;
+                }
+                return false;
+            }
+
+            public bool AnyReleasesThisFrame()
+            {
+                for (int i = 0; i < m_TrackedButtons.Count; i++)
+                {
+                    if (m_TrackedButtons[i].eventData.ReleasedThisFrame())
+                        return true;
+                }
+                return false;
+            }
+
+            public ButtonState GetButtonState(PointerEventData.InputButton button)
+            {
+                ButtonState tracked = null;
+                for (int i = 0; i < m_TrackedButtons.Count; i++)
+                {
+                    if (m_TrackedButtons[i].button == button)
+                    {
+                        tracked = m_TrackedButtons[i];
+                        break;
+                    }
+                }
+
+                if (tracked == null)
+                {
+                    tracked = new ButtonState { button = button, eventData = new MouseButtonEventData() };
+                    m_TrackedButtons.Add(tracked);
+                }
+                return tracked;
+            }
+
+            public void SetButtonState(PointerEventData.InputButton button, PointerEventData.FramePressState stateForMouseButton, PointerEventData data)
+            {
+                var toModify = GetButtonState(button);
+                toModify.eventData.buttonState = stateForMouseButton;
+                toModify.eventData.buttonData = data;
+            }
+        }
+
+        /// <summary>
+        /// Information about a mouse button event.
+        /// </summary>
+        public class MouseButtonEventData
+        {
+            /// <summary>
+            /// The state of the button this frame.
+            /// </summary>
+            public PointerEventData.FramePressState buttonState;
+
+            /// <summary>
+            /// Pointer data associated with the mouse event.
+            /// </summary>
+            public PointerEventData buttonData;
+
+            /// <summary>
+            /// Was the button pressed this frame?
+            /// </summary>
+            public bool PressedThisFrame()
+            {
+                return buttonState == PointerEventData.FramePressState.Pressed || buttonState == PointerEventData.FramePressState.PressedAndReleased;
+            }
+
+            /// <summary>
+            /// Was the button released this frame?
+            /// </summary>
+            public bool ReleasedThisFrame()
+            {
+                return buttonState == PointerEventData.Frame
